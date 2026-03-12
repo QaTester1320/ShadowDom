@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Shadow DOM - Dark Edition</title>
+    <style>
+        :root {
+            --bg-dark: #0f0f0f;
+            --card-bg: #1a1a1a;
+            --accent-purple: #8e44ad;
+            --accent-blue: #2980b9;
+            --accent-green: #27ae60;
+            --text-gray: #a0a0a0;
+            --border: #333;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg-dark);
+            color: #eee;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            margin: 0;
+        }
+
+        h1 { font-weight: 200; letter-spacing: 3px; color: var(--accent-purple); margin-bottom: 40px; }
+
+        .section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 25px;
+            width: 100%;
+            max-width: 650px;
+            border: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-gray);
+            margin-bottom: 20px;
+            border-left: 3px solid var(--accent-blue);
+            padding-left: 12px;
+        }
+
+        .grid { display: flex; flex-direction: column; gap: 15px; }
+
+        iframe {
+            border: 1px solid #333;
+            border-radius: 6px;
+            width: 100%;
+            height: 90px;
+            background: #111;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>LABYRINTH DOM</h1>
+
+    <div class="section">
+        <div class="section-title">Section 1: Multi-Level Targets</div>
+        <div class="grid">
+            <div id="s1-normal" style="padding:15px; background:#222; border:1px solid #444; border-radius:8px; cursor:pointer; text-align:center;">Normal DOM Element</div>
+            <div id="s1-h1"></div>
+            <div id="s1-h2"></div>
+            <div id="s1-h3"></div>
+            <div id="s1-h4"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Section 2: Interactive Forms</div>
+        <div class="grid">
+            <div id="s2-h1"></div>
+            <div id="s2-h2"></div>
+            <div id="s2-h3"></div>
+            <div id="s2-h4"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Section 3: Iframe Containment</div>
+        <div class="grid">
+            <div id="s3-h1"></div>
+            <div id="s3-h2"></div>
+            <div id="s3-h3"></div>
+            <div id="s3-h4"></div>
+        </div>
+    </div>
+
+    <script>
+        const getBaseStyle = (color) => `
+            .wrapper { display: flex; flex-direction: column; gap: 8px; font-family: sans-serif; }
+            .input-row { display: flex; gap: 10px; }
+            input { 
+                background: #111; border: 1px solid #444; color: white; 
+                padding: 12px; border-radius: 6px; flex-grow: 1; outline: none;
+            }
+            .btn-div { 
+                background: ${color}; color: white; padding: 12px 20px; 
+                border-radius: 6px; cursor: pointer; transition: 0.2s; font-size: 13px;
+                text-align: center; font-weight: bold;
+            }
+            .btn-div:active { transform: scale(0.98); }
+            .label { color: #666; font-size: 11px; text-transform: uppercase; }
+            .msg { color: #27ae60; font-size: 12px; height: 15px; margin-top: 4px; opacity: 0; transition: 0.3s; }
+            .box-target { background: ${color}; padding: 15px; border-radius: 8px; text-align: center; cursor: pointer; }
+        `;
+
+        function buildShadow(hostId, layers, type, color, labelText) {
+            let host = document.getElementById(hostId);
+            let root;
+
+            for (let i = 0; i < layers; i++) {
+                root = host.attachShadow({mode: 'open'});
+                if (i < layers - 1) {
+                    const next = document.createElement('div');
+                    root.appendChild(next);
+                    host = next;
+                }
+            }
+
+            const style = document.createElement('style');
+            style.textContent = getBaseStyle(color);
+            root.appendChild(style);
+
+            const container = document.createElement('div');
+            container.className = 'wrapper';
+            container.innerHTML = `<div class="label">${labelText}</div>`;
+
+            if (type === 'div') {
+                const div = document.createElement('div');
+                div.className = 'box-target';
+                div.textContent = `Depth Level ${layers}`;
+                container.appendChild(div);
+            } 
+            else if (type === 'form') {
+                const row = document.createElement('div');
+                row.className = 'input-row';
+                const input = document.createElement('input');
+                input.placeholder = "Type something...";
+                
+                const btn = document.createElement('div');
+                btn.className = 'btn-div';
+                btn.textContent = "Submit";
+                
+                const msg = document.createElement('div');
+                msg.className = 'msg';
+
+                btn.onclick = () => {
+                    const val = input.value.trim();
+                    if(val) {
+                        msg.textContent = `Entered: "${val}"`;
+                        msg.style.opacity = "1";
+                        input.value = "";
+                        setTimeout(() => { msg.style.opacity = "0"; }, 3000);
+                    }
+                };
+
+                row.appendChild(input);
+                row.appendChild(btn);
+                container.appendChild(row);
+                container.appendChild(msg);
+            } 
+            else if (type === 'iframe') {
+                const ifr = document.createElement('iframe');
+                ifr.srcdoc = `
+                    <body style="background:#111; color:#777; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:70px; margin:0; border: 1px dashed #333;">
+                        <div style="font-size: 12px;">IFRAME_CONTENT_LVL_${layers}</div>
+                    </body>
+                `;
+                container.appendChild(ifr);
+            }
+
+            root.appendChild(container);
+        }
+
+        // Section 1: Interactive Divs
+        buildShadow('s1-h1', 1, 'div', '#2980b9', '1st Level Shadow');
+        buildShadow('s1-h2', 2, 'div', '#3498db', '2nd Level Shadow');
+        buildShadow('s1-h3', 3, 'div', '#16a085', '3rd Level Shadow');
+        buildShadow('s1-h4', 4, 'div', '#27ae60', '4th Level Shadow');
+
+        // Section 2: Form Logic (Now with Submit & Clear)
+        buildShadow('s2-h1', 1, 'form', '#8e44ad', 'Form Depth 1');
+        buildShadow('s2-h2', 2, 'form', '#9b59b6', 'Form Depth 2');
+        buildShadow('s2-h3', 3, 'form', '#6c5ce7', 'Form Depth 3');
+        buildShadow('s2-h4', 4, 'form', '#a29bfe', 'Form Depth 4');
+
+        // Section 3: Iframes
+        buildShadow('s3-h1', 1, 'iframe', '', 'Frame Host L1');
+        buildShadow('s3-h2', 2, 'iframe', '', 'Frame Host L2');
+        buildShadow('s3-h3', 3, 'iframe', '', 'Frame Host L3');
+        buildShadow('s3-h4', 4, 'iframe', '', 'Frame Host L4');
+
+    </script>
+</body>
+</html>
