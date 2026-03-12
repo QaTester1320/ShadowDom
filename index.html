@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unique Shadow DOM Sandbox</title>
+    <style>
+        :root {
+            --bg-color: #f5f6fa;
+            --normal-color: #2f3640;
+            --tooltip-bg: #353b48;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 350px;
+        }
+
+        /* 4th Element: Normal DOM styling */
+        .box-normal {
+            padding: 20px;
+            background-color: var(--normal-color);
+            color: white;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .box-normal::after {
+            content: "Tooltip: I am in the Main DOM";
+            position: absolute;
+            bottom: 125%; left: 50%; transform: translateX(-50%);
+            background: var(--tooltip-bg); padding: 8px 12px; border-radius: 6px;
+            font-size: 12px; opacity: 0; visibility: hidden; transition: 0.2s;
+        }
+
+        .box-normal:hover::after { opacity: 1; visibility: visible; }
+
+        h2 { color: #2f3640; font-weight: 400; margin-bottom: 50px; }
+    </style>
+</head>
+<body>
+
+    <h2>Automation Sandbox</h2>
+
+    <div class="container">
+        <div class="box-normal">Normal DOM Element</div>
+
+        <div id="host-1"></div>
+        <div id="host-2"></div>
+        <div id="host-3"></div>
+        <div id="host-deep"></div>
+    </div>
+
+    <script>
+        function createShadowElement(hostId, text, color, tooltipText, layers = 1) {
+            let host = document.getElementById(hostId);
+            let currentRoot;
+
+            // Create the nested chain
+            for (let i = 0; i < layers; i++) {
+                currentRoot = host.attachShadow({mode: 'open'});
+                if (i < layers - 1) {
+                    const nextHost = document.createElement('div');
+                    currentRoot.appendChild(nextHost);
+                    host = nextHost;
+                }
+            }
+
+            // Unique CSS for this specific Shadow Root
+            const style = document.createElement('style');
+            style.textContent = `
+                .box-shadow {
+                    padding: 20px; background-color: ${color}; color: white;
+                    border-radius: 10px; text-align: center; cursor: pointer;
+                    font-family: sans-serif; position: relative;
+                }
+                .box-shadow::after {
+                    content: "${tooltipText}";
+                    position: absolute; bottom: 125%; left: 50%; transform: translateX(-50%);
+                    background: #353b48; padding: 8px 12px; border-radius: 6px;
+                    font-size: 12px; opacity: 0; visibility: hidden; transition: 0.2s;
+                    white-space: nowrap;
+                }
+                .box-shadow:hover::after { opacity: 1; visibility: visible; }
+            `;
+            
+            const el = document.createElement('div');
+            el.className = 'box-shadow';
+            el.textContent = text;
+            
+            currentRoot.appendChild(style);
+            currentRoot.appendChild(el);
+        }
+
+        // Initialize with unique tooltips and colors
+        createShadowElement('host-1', 'Shadow Element 1', '#487eb0', 'Tooltip: Level 1 Shadow', 1);
+        createShadowElement('host-2', 'Shadow Element 2', '#e84118', 'Tooltip: Level 2 Shadow', 2);
+        createShadowElement('host-3', 'Shadow Element 3', '#8c7ae6', 'Tooltip: Level 3 Shadow', 3);
+        
+        // 5th Element: 4 extra shadow roots (5 layers total)
+        createShadowElement('host-deep', 'Deep Shadow Element', '#44bd32', 'Tooltip: Deep Level 5 Root', 5);
+    </script>
+</body>
+</html>
